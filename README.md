@@ -199,5 +199,4 @@ login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, ap
 ## Các dự án sử dụng API này
 
 
-- [Alphabot](https://github.com/nhatcoder2003/alphabot) – Simple bot chat messenger
-- [GinTool](https://github.com/nhatcoder2003/gintool) - GinTool is a utility for mass spamming and cursing others in messager group mailboxes developed by NhatVu
+- [Alphabot](https://github.com/nhatcoder2003/gbot)
