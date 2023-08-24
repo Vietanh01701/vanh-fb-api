@@ -3,11 +3,16 @@
 var utils = require("../utils");
 var log = require("npmlog");
 
-module.exports = function(defaultFuncs, api, ctx) {
-  // muteSecond: -1=permanent mute, 0=unmute, 60=one minute, 3600=one hour, etc.
-  return function muteThread(threadID, muteSeconds, callback) {
-    var resolveFunc = function(){};
-    var rejectFunc = function(){};
+module.exports = function (defaultFuncs, api, ctx) {
+  return function markAsRead(seen_timestamp, callback) {
+    if (utils.getType(seen_timestamp) == "Function" ||
+      utils.getType(seen_timestamp) == "AsyncFunction") {
+      callback = seen_timestamp;
+      seen_timestamp = Date.now();
+    }
+
+    var resolveFunc = function () { };
+    var rejectFunc = function () { };
     var returnPromise = new Promise(function (resolve, reject) {
       resolveFunc = resolve;
       rejectFunc = reject;
@@ -23,27 +28,29 @@ module.exports = function(defaultFuncs, api, ctx) {
     }
 
     var form = {
-      thread_fbid: threadID,
-      mute_settings: muteSeconds
+      seen_timestamp: seen_timestamp
     };
 
     defaultFuncs
       .post(
-        "https://www.facebook.com/ajax/mercury/change_mute_thread.php",
+        "https://www.facebook.com/ajax/mercury/mark_seen.php",
         ctx.jar,
         form
       )
       .then(utils.saveCookies(ctx.jar))
       .then(utils.parseAndCheckLogin(ctx, defaultFuncs))
-      .then(function(resData) {
+      .then(function (resData) {
         if (resData.error) {
           throw resData;
         }
 
         return callback();
       })
-      .catch(function(err) {
-        log.error("muteThread", err);
+      .catch(function (err) {
+        log.error("markAsSeen", err);
+        if (utils.getType(err) == "Object" && err.error === "Not logged in.") {
+          ctx.loggedIn = false;
+        }
         return callback(err);
       });
 

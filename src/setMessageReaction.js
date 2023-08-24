@@ -4,12 +4,36 @@ var utils = require("../utils");
 var log = require("npmlog");
 
 module.exports = function(defaultFuncs, api, ctx) {
-  return function setMessageReaction(reaction, messageID, callback) {
+  return function setMessageReaction(reaction, messageID, callback, forceCustomReaction) {
+    var resolveFunc = function(){};
+    var rejectFunc = function(){};
+    var returnPromise = new Promise(function (resolve, reject) {
+      resolveFunc = resolve;
+      rejectFunc = reject;
+    });
+
     if (!callback) {
-      callback = function() {};
+      callback = function (err, friendList) {
+        if (err) {
+          return rejectFunc(err);
+        }
+        resolveFunc(friendList);
+      };
     }
 
     switch (reaction) {
+      case "\uD83D\uDE0D": //:heart_eyes:
+      case "\uD83D\uDE06": //:laughing:
+      case "\uD83D\uDE2E": //:open_mouth:
+      case "\uD83D\uDE22": //:cry:
+      case "\uD83D\uDE20": //:angry:
+      case "\uD83D\uDC4D": //:thumbsup:
+      case "\uD83D\uDC4E": //:thumbsdown:
+      case "\u2764": //:heart:
+      case "\uD83D\uDC97": //:glowingheart:
+      case "":
+        //valid
+        break;
       case ":heart_eyes:":
       case ":love:":
         reaction = "\uD83D\uDE0D";
@@ -37,8 +61,17 @@ module.exports = function(defaultFuncs, api, ctx) {
       case ":dislike:":
         reaction = "\uD83D\uDC4E";
         break;
-      default:
+      case ":heart:":
+        reaction = "\u2764";
         break;
+      case ":glowingheart:":
+        reaction = "\uD83D\uDC97";
+        break;
+      default:
+        if (forceCustomReaction) {
+          break; 
+        }
+        return callback({ error: "Reaction is not a valid emoji." });
     }
 
     var variables = {
@@ -78,5 +111,7 @@ module.exports = function(defaultFuncs, api, ctx) {
         log.error("setReaction", err);
         return callback(err);
       });
+
+    return returnPromise;
   };
 };

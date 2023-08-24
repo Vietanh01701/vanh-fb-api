@@ -5,11 +5,24 @@ var log = require("npmlog");
 
 module.exports = function(defaultFuncs, api, ctx) {
   return function createPoll(title, threadID, options, callback) {
+    var resolveFunc = function(){};
+    var rejectFunc = function(){};
+    var returnPromise = new Promise(function (resolve, reject) {
+      resolveFunc = resolve;
+      rejectFunc = reject;
+    });
+
     if (!callback) {
       if (utils.getType(options) == "Function") {
         callback = options;
+        options = null;
       } else {
-        callback = function() {};
+        callback = function(err) {
+          if (err) {
+            return rejectFunc(err);
+          }
+          resolveFunc();
+        };
       }
     }
     if (!options) {
@@ -24,6 +37,7 @@ module.exports = function(defaultFuncs, api, ctx) {
     // Set fields for options (and whether they are selected initially by the posting user)
     var ind = 0;
     for (var opt in options) {
+      // eslint-disable-next-line no-prototype-builtins
       if (options.hasOwnProperty(opt)) {
         form["option_text_array[" + ind + "]"] = opt;
         form["option_is_selected_array[" + ind + "]"] = options[opt]
@@ -51,5 +65,7 @@ module.exports = function(defaultFuncs, api, ctx) {
         log.error("createPoll", err);
         return callback(err);
       });
+
+    return returnPromise;
   };
 };

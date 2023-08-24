@@ -4,8 +4,7 @@ var utils = require("../utils");
 var log = require("npmlog");
 
 module.exports = function(defaultFuncs, api, ctx) {
-  // muteSecond: -1=permanent mute, 0=unmute, 60=one minute, 3600=one hour, etc.
-  return function muteThread(threadID, muteSeconds, callback) {
+  return function unsendMessage(postID, type, callback) {
     var resolveFunc = function(){};
     var rejectFunc = function(){};
     var returnPromise = new Promise(function (resolve, reject) {
@@ -22,18 +21,43 @@ module.exports = function(defaultFuncs, api, ctx) {
       };
     }
 
+    var map = {
+      like: 1,
+      heart: 2,
+      wow: 3,
+      haha: 4,
+      sad: 7,
+      angry: 8
+    };
+    if (typeof type != "number") {
+      type = map[type.toLocaleLowerCase()];
+      if (!type) {
+        type = 1;
+      }
+    }
     var form = {
-      thread_fbid: threadID,
-      mute_settings: muteSeconds
+      av: ctx.userID,
+      fb_api_caller_class: "RelayModern",
+      fb_api_req_friendly_name: "UFI2FeedbackReactMutation",
+      //This doc_id is valid as of January 17th, 2020
+      doc_id: "2580813318646067",
+      variables: JSON.stringify({
+        input: {
+          client_mutation_id: "7",
+          actor_id: ctx.userID,
+          feedback_reaction: type,
+          
+        },
+        useDefaultActor: true
+      })
     };
 
     defaultFuncs
       .post(
-        "https://www.facebook.com/ajax/mercury/change_mute_thread.php",
+        "https://www.facebook.com/api/graphql/",
         ctx.jar,
         form
       )
-      .then(utils.saveCookies(ctx.jar))
       .then(utils.parseAndCheckLogin(ctx, defaultFuncs))
       .then(function(resData) {
         if (resData.error) {
@@ -43,7 +67,7 @@ module.exports = function(defaultFuncs, api, ctx) {
         return callback();
       })
       .catch(function(err) {
-        log.error("muteThread", err);
+        log.error("setPostReaction", err);
         return callback(err);
       });
 

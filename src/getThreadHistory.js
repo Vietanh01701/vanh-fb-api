@@ -103,7 +103,6 @@ function formatAttachmentsGraphQLResponse(attachment) {
         duration: attachment.playable_duration_in_ms,
         videoType: attachment.video_type.toLowerCase()
       };
-      break;
     case "MessageFile":
       return {
         type: "file",
@@ -364,14 +363,14 @@ function formatMessagesGraphQLResponse(data) {
         // Give priority to stickers. They're seen as normal messages but we've
         // been considering them as attachments.
         var maybeStickerAttachment;
-        if (d.sticker && d.sticker.pack) {
+        if (d.sticker) {
           maybeStickerAttachment = [
             {
               type: "sticker",
               ID: d.sticker.id,
               url: d.sticker.url,
 
-              packID: d.sticker.pack ? d.sticker.pack.id : null,
+              packID: d.sticker.pack.id,
               spriteUrl: d.sticker.sprite_image,
               spriteUrl2x: d.sticker.sprite_image_2x,
               width: d.sticker.width,
@@ -585,8 +584,20 @@ module.exports = function(defaultFuncs, api, ctx) {
     timestamp,
     callback
   ) {
+    var resolveFunc = function(){};
+    var rejectFunc = function(){};
+    var returnPromise = new Promise(function (resolve, reject) {
+      resolveFunc = resolve;
+      rejectFunc = reject;
+    });
+
     if (!callback) {
-      throw { error: "getThreadHistoryGraphQL: need callback" };
+      callback = function (err, data) {
+        if (err) {
+          return rejectFunc(err);
+        }
+        resolveFunc(data);
+      };
     }
 
     // `queries` has to be a string. I couldn't tell from the dev console. This
@@ -619,7 +630,7 @@ module.exports = function(defaultFuncs, api, ctx) {
         // failure one.
         // @TODO What do we do in this case?
         if (resData[resData.length - 1].error_results !== 0) {
-          throw new Error("well darn there was an error_result");
+          throw new Error("There was an error_result.");
         }
 
         callback(null, formatMessagesGraphQLResponse(resData[0]));
@@ -628,5 +639,7 @@ module.exports = function(defaultFuncs, api, ctx) {
         log.error("getThreadHistoryGraphQL", err);
         return callback(err);
       });
+
+    return returnPromise;
   };
 };

@@ -9,8 +9,8 @@ function createProfileUrl(url, username, id) {
 }
 
 function formatParticipants(participants) {
-  return participants.nodes.map((p)=>{
-    p = p.messaging_actor;
+  return participants.edges.map((p)=>{
+    p = p.node.messaging_actor;
     switch (p["__typename"]) {
       case "User":
         return {
@@ -66,7 +66,7 @@ function formatParticipants(participants) {
           isMessageBlockedByViewer: p.is_message_blocked_by_viewer, // true/false
         };
       default:
-        log.warn("getThreadList", "Found participant with unsupported typename. Please open an issue at https://github.com/Schmavery/facebook-chat-api/issues\n" + JSON.stringify(p, null, 2));
+        log.warn("getThreadList", "Found participant with unsupported typename. Please open an issue at https://github.com/Schmavery/fca-unofficial/issues\n" + JSON.stringify(p, null, 2));
         return {
           accountType: p["__typename"],
           userID: utils.formatID(p.id.toString()),
@@ -87,7 +87,8 @@ function formatColor(color) {
 function getThreadName(t) {
   if (t.name || t.thread_key.thread_fbid) return t.name;
 
-  for (let p of t.all_participants.nodes) {
+  for (let po of t.all_participants.edges) {
+    let p = po.node;
     if (p.messaging_actor.id === t.thread_key.other_user_id) return p.messaging_actor.name;
   }
 }
@@ -141,6 +142,7 @@ function formatThreadList(data) {
                          ? (t.last_read_receipt.nodes[0]?t.last_read_receipt.nodes[0].timestamp_precise:null)
                          : null, // timestamp in miliseconds
       cannotReplyReason: t.cannot_reply_reason, // TODO: inspect possible values
+      approvalMode: Boolean(t.approval_mode),
 
       // @Legacy
       participantIDs: formatParticipants(t.all_participants).map(participant => participant.userID),
@@ -168,16 +170,29 @@ module.exports = function(defaultFuncs, api, ctx) {
     if (utils.getType(tags) !== "Array") {
       throw {error: "getThreadList: tags must be an array"};
     }
+
+    var resolveFunc = function(){};
+    var rejectFunc = function(){};
+    var returnPromise = new Promise(function (resolve, reject) {
+      resolveFunc = resolve;
+      rejectFunc = reject;
+    });
+
     if (utils.getType(callback) !== "Function" && utils.getType(callback) !== "AsyncFunction") {
-      throw {error: "getThreadList: need callback"};
+      callback = function (err, data) {
+        if (err) {
+          return rejectFunc(err);
+        }
+        resolveFunc(data);
+      };
     }
 
     const form = {
       "av": ctx.globalOptions.pageID,
       "queries": JSON.stringify({
         "o0": {
-          // This doc_id was valid on 2018-04-04.
-          "doc_id": "1349387578499440",
+          // This doc_id was valid on 2020-07-20
+          "doc_id": "3336396659757871",
           "query_params": {
             "limit": limit+(timestamp?1:0),
             "before": timestamp,
@@ -186,7 +201,8 @@ module.exports = function(defaultFuncs, api, ctx) {
             "includeSeqID": false
           }
         }
-      })
+      }),
+      "batch_name": "MessengerGraphQLThreadlistFetcher"
     };
 
     defaultFuncs
@@ -216,5 +232,7 @@ module.exports = function(defaultFuncs, api, ctx) {
         log.error("getThreadList", err);
         return callback(err);
       });
+
+    return returnPromise;
   };
 };

@@ -1,7 +1,7 @@
 {
   "name": "nhatcoder-fb-api",
-  "version": "1.0.2",
-  "description": "Facebook chat API that doesn't rely on XMPP.  Will NOT be deprecated April 30th 2015.",
+  "version": "2.3.5",
+  "description": "Facebook chat API that doesn't rely on XMPP",
   "scripts": {
     "test": "mocha",
     "lint": "eslint **.js",
@@ -40,6 +40,7 @@
   "eslintConfig": {
     "env": {
       "es6": true,
+      "es2017": true,
       "node": true
     },
     "extends": "eslint:recommended",
@@ -58,7 +59,14 @@
       "no-unused-vars": [
         1,
         {
-          "argsIgnorePattern": "^_"
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_"
+        }
+      ],
+      "no-empty": [
+        "error",
+        {
+          "allowEmptyCatch": true
         }
       ]
     }
@@ -67,5 +75,6 @@
   "main": "index.js",
   "directories": {
     "test": "test"
-  }
+  },
+  "types": "nhatcoder.d.ts"
 }
