@@ -198,5 +198,5 @@ login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, ap
 
 ## Các dự án sử dụng API này
 
-
-- [Alphabot](https://github.com/nhatcoder2003/gbot)
+- [Gbot](https://github.com/nhatcoder2003/Gbot)
+- [Gbot-War](https://github.com/nhatcoder2003/Gbot-War)
